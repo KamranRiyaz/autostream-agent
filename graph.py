@@ -2,6 +2,7 @@ from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
 from state import AgentState
 from nodes import router_node, rag_node, lead_node, tools
+from langgraph.checkpoint.memory import MemorySaver
 
 # 1. Initialize Graph
 workflow = StateGraph(AgentState)
@@ -15,10 +16,24 @@ workflow.add_node("rag", rag_node)
 workflow.add_node("lead", lead_node)
 workflow.add_node("tools", tool_node)
 
-# 4. Set Entry Point
-workflow.set_entry_point("router")
 
-# 5. Define Conditional Routing from Router
+# 4. Set Conditional Entry Point (The Flow Lock Logic)
+def check_active_flow(state: AgentState):
+    """Checks if the user is locked in a flow before invoking the LLM router."""
+    if state.get("active_flow") == "lead":
+        return "lead"
+    return "router"
+
+workflow.set_conditional_entry_point(
+    check_active_flow,
+    {
+        "lead": "lead",
+        "router": "router"
+    }
+)
+
+
+# 5. Define Routing from the Router Node
 def route_logic(state: AgentState):
     intent = state.get("intent")
     if intent == "inquiry":
@@ -29,7 +44,8 @@ def route_logic(state: AgentState):
 
 workflow.add_conditional_edges("router", route_logic)
 
-# 6. Define Tool Routing from Lead Node
+
+# 6. Define Routing from the Lead Node
 def route_lead(state: AgentState):
     """Checks if the LLM decided to call the tool or just ask a question."""
     last_message = state["messages"][-1]
@@ -43,11 +59,14 @@ def route_lead(state: AgentState):
 
 workflow.add_conditional_edges("lead", route_lead)
 
+
 # 7. Add Standard Edges
 # After a tool executes, route back to the lead_node so the LLM can see the 
-# success message and say a final goodbye to the user.
+# success message, say goodbye, and release the lock via the lead_node logic.
 workflow.add_edge("tools", "lead")
 workflow.add_edge("rag", END)
 
+memory = MemorySaver()
+
 # 8. Compile the Graph
-app = workflow.compile()
+app = workflow.compile(checkpointer=memory)

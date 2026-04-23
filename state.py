@@ -1,16 +1,10 @@
-from typing import TypedDict, Annotated, List
-from langchain_core.messages import BaseMessage
-from langgraph.graph.message import add_messages
-import operator
+# state.py
+from langgraph.graph import MessagesState
 
-class AgentState(TypedDict):
-    # The conversation history
-    messages: Annotated[List[BaseMessage], add_messages]
-    
-    # Intent tracking (greeting, inquiry, lead)
+class AgentState(MessagesState):
     intent: str 
+    active_flow: str # The lock variable
     
-    # Lead details
     name: str
     email: str
     platform: str

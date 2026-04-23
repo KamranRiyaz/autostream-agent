@@ -1,6 +1,5 @@
 langchain
 langgraph
-langgraph.graph
 langchain_core 
 langchain-google-genai 
 pydantic 
