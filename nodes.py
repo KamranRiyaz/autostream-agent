@@ -3,9 +3,14 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
+from dotenv import load_dotenv
+import os
 
-# Initialize the LLM (Gemini 1.5 Flash)
-llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0)
+# Load environment variables
+load_dotenv()
+
+# Initialize the LLM (Gemini 2.0 Flash)
+llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash-lite", temperature=0)
 
 # Define the expected strict output for the router
 class IntentClassification(BaseModel):
@@ -27,16 +32,25 @@ def mock_lead_capture(name: str, email: str, platform: str) -> str:
 tools = [mock_lead_capture]
 
 def router_node(state: AgentState):
-    """Analyzes the latest message and categorizes user intent."""
-    last_message = state["messages"][-1].content
+    """Analyzes the latest message and categorizes user intent with context."""
+    messages = state["messages"]
+    last_user_message = messages[-1].content
+    
+    # Grab the previous AI message to provide context to the router
+    context = ""
+    if len(messages) >= 2 and messages[-2].type == "ai":
+        context = f"Previous AI question: '{messages[-2].content}'"
 
     prompt = f"""You are an intent routing system for AutoStream, an AI video editing SaaS.
     Analyze the user message and strictly categorize it into one of these intents:
     - 'greeting': Casual hellos, pleasantries.
     - 'inquiry': Questions about pricing, features, plans, or company policies.
-    - 'lead': Explicit statements showing readiness to sign up, buy, or try a plan (e.g., "I want to sign up", "Let's start the Pro plan").
+    - 'lead': Explicit statements showing readiness to sign up OR the user is providing requested signup details (Name, Email, Platform).
 
-    User Message: "{last_message}"
+    {context}
+    Current User Message: "{last_user_message}"
+    
+    CRITICAL RULE: If the Previous AI question was asking for signup details (name, email, platform) and the Current User Message is answering it, you MUST classify the intent as 'lead'.
     """
     
     # Force the LLM to return JSON matching the Pydantic model
@@ -44,7 +58,6 @@ def router_node(state: AgentState):
     result = structured_llm.invoke(prompt)
     
     return {"intent": result.intent}
-
 def rag_node(state: AgentState):
     """Reads data.md and answers product questions using only that context."""
     # Read the local knowledge base

@@ -1,7 +1,10 @@
 langchain
-langgraph 
+langgraph
+langgraph.graph
+langchain_core 
 langchain-google-genai 
 pydantic 
 fastapi 
 uvicorn 
 python-multipart
+python-dotenv
