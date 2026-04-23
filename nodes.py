@@ -6,10 +6,8 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
-# Load the environment variables from the .env file
 load_dotenv()
 
-# Initialize the LLM (Gemini 2.0 Flash Lite)
 llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
 
 # Define the expected strict output for the router
@@ -45,11 +43,9 @@ def router_node(state: AgentState):
     User Message: "{last_message}"
     """
     
-    # Force the LLM to return JSON matching the Pydantic model
     structured_llm = llm.with_structured_output(IntentClassification)
     result = structured_llm.invoke(prompt)
     
-    # If the user wants to sign up, we set the active_flow lock
     new_active_flow = "lead" if result.intent == "lead" else None
     
     return {"intent": result.intent, "active_flow": new_active_flow}
@@ -57,7 +53,6 @@ def router_node(state: AgentState):
 
 def rag_node(state: AgentState):
     """Reads data.md and answers product questions using only that context."""
-    # Read the local knowledge base
     try:
         with open("data.md", "r") as f:
             kb_content = f.read()
@@ -101,9 +96,6 @@ def lead_node(state: AgentState):
     messages = [SystemMessage(content=system_prompt)] + state["messages"]
     response = llm_with_tools.invoke(messages)
     
-    # Check if the flow should be unlocked
-    # If the last message in the state is from the tool, it means the tool 
-    # just executed successfully. We can release the lock.
     active_flow = "lead"
     if len(state["messages"]) > 0 and state["messages"][-1].type == "tool":
         active_flow = None 

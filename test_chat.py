@@ -1,7 +1,6 @@
 from graph import app
 import uuid
 
-# Create a unique thread ID for this test session
 thread_id = str(uuid.uuid4())
 config = {"configurable": {"thread_id": thread_id}}
 

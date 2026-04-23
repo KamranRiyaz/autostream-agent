@@ -61,8 +61,6 @@ workflow.add_conditional_edges("lead", route_lead)
 
 
 # 7. Add Standard Edges
-# After a tool executes, route back to the lead_node so the LLM can see the 
-# success message, say goodbye, and release the lock via the lead_node logic.
 workflow.add_edge("tools", "lead")
 workflow.add_edge("rag", END)
 
