@@ -2,6 +2,12 @@
 
 **Author:** Kamran Riyaz
 
+
+## Demo Video Google Drive Link:
+
+https://drive.google.com/file/d/14MImXRXoPEy2sP6WWItNYj5EjSL5VuHN/view?usp=sharing
+
+
 ## 1. How to run the project locally
 
 1. **Clone the repository:**
